@@ -528,11 +528,9 @@ func mutatePod(pod *corev1.Pod, token string) *corev1.Pod {
 
 func newRunnerPod(runnerName string, template corev1.Pod, runnerSpec v1alpha1.RunnerConfig, defaultRunnerImage string, defaultRunnerImagePullSecrets []string, defaultDockerImage, defaultDockerRegistryMirror string, githubBaseURL string) (corev1.Pod, error) {
 	var (
-		privileged                bool = true
 		dockerdInRunner           bool = runnerSpec.DockerdWithinRunnerContainer != nil && *runnerSpec.DockerdWithinRunnerContainer
 		dockerEnabled             bool = runnerSpec.DockerEnabled == nil || *runnerSpec.DockerEnabled
 		ephemeral                 bool = runnerSpec.Ephemeral == nil || *runnerSpec.Ephemeral
-		dockerdInRunnerPrivileged bool = dockerdInRunner
 	)
 
 	template = *template.DeepCopy()
@@ -598,15 +596,6 @@ func newRunnerPod(runnerName string, template corev1.Pod, runnerSpec v1alpha1.Ru
 		},
 	}
 
-	var seLinuxOptions *corev1.SELinuxOptions
-	if template.Spec.SecurityContext != nil {
-		seLinuxOptions = template.Spec.SecurityContext.SELinuxOptions
-		if seLinuxOptions != nil {
-			privileged = false
-			dockerdInRunnerPrivileged = false
-		}
-	}
-
 	var runnerContainerIndex, dockerdContainerIndex int
 	var runnerContainer, dockerdContainer *corev1.Container
 
@@ -625,10 +614,6 @@ func newRunnerPod(runnerName string, template corev1.Pod, runnerSpec v1alpha1.Ru
 		runnerContainerIndex = -1
 		runnerContainer = &corev1.Container{
 			Name: containerName,
-			SecurityContext: &corev1.SecurityContext{
-				// Runner need to run privileged if it contains DinD
-				Privileged: &dockerdInRunnerPrivileged,
-			},
 		}
 	}
 
@@ -654,11 +639,6 @@ func newRunnerPod(runnerName string, template corev1.Pod, runnerSpec v1alpha1.Ru
 
 	if runnerContainer.SecurityContext == nil {
 		runnerContainer.SecurityContext = &corev1.SecurityContext{}
-	}
-
-	if runnerContainer.SecurityContext.Privileged == nil {
-		// Runner need to run privileged if it contains DinD
-		runnerContainer.SecurityContext.Privileged = &dockerdInRunnerPrivileged
 	}
 
 	pod := template.DeepCopy()
@@ -822,13 +802,6 @@ func newRunnerPod(runnerName string, template corev1.Pod, runnerSpec v1alpha1.Ru
 			Name:  "DOCKER_TLS_CERTDIR",
 			Value: "/certs",
 		})
-
-		if dockerdContainer.SecurityContext == nil {
-			dockerdContainer.SecurityContext = &corev1.SecurityContext{
-				Privileged:     &privileged,
-				SELinuxOptions: seLinuxOptions,
-			}
-		}
 
 		dockerdContainer.VolumeMounts = append(dockerdContainer.VolumeMounts, dockerVolumeMounts...)
 
