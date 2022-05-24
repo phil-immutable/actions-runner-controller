@@ -36,11 +36,6 @@ jobs:
       - name: Set version
         run: echo "VERSION=$(cat ${GITHUB_EVENT_PATH} | jq -r '.release.tag_name')" >> $GITHUB_ENV
 
-      - name: Upload artifacts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: make github-release
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@0522dcd2bf084920c411162fde334a308be75015
 
@@ -63,7 +58,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.DOCKERHUB_USERNAME }}/actions-runner-controller:latest
-            ${{ env.DOCKERHUB_USERNAME }}/actions-runner-controller:${{ env.VERSION }}
-            ${{ env.DOCKERHUB_USERNAME }}/actions-runner-controller:${{ env.VERSION }}-${{ steps.vars.outputs.sha_short }}
+            ${{ env.DOCKERHUB_USERNAME }}/actions-runner-controller-windows:latest
+            ${{ env.DOCKERHUB_USERNAME }}/actions-runner-controller-windows:${{ env.VERSION }}
+            ${{ env.DOCKERHUB_USERNAME }}/actions-runner-controller-windows:${{ env.VERSION }}-${{ steps.vars.outputs.sha_short }}
 
