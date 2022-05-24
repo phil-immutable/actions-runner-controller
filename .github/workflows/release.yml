@@ -1,8 +1,7 @@
 name: Publish Controller Image
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch: {}
 
 jobs:
   build:
